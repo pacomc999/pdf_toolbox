@@ -156,7 +156,84 @@
 
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script>
-    // JS goes here in later tasks
+    // ---- State ----
+    // files is an array of { file: File, error: string|null }
+    let files = [];
+
+    // ---- Element refs ----
+    const dropZone   = document.getElementById('drop-zone');
+    const fileInput  = document.getElementById('file-input');
+    const pickLabel  = document.getElementById('pick-label');
+    const fileList   = document.getElementById('file-list');
+    const actions    = document.getElementById('actions');
+    const mergeBtn   = document.getElementById('merge-btn');
+    const statusEl   = document.getElementById('status');
+
+    // ---- File picking ----
+    pickLabel.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('click', (e) => {
+      if (e.target !== pickLabel) fileInput.click();
+    });
+
+    fileInput.addEventListener('change', () => {
+      addFiles(Array.from(fileInput.files));
+      fileInput.value = ''; // allow re-picking same file
+    });
+
+    // ---- Drag-over drop zone (file OS drag) ----
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const dropped = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
+      addFiles(dropped);
+    });
+
+    // ---- Add files to state ----
+    function addFiles(newFiles) {
+      newFiles.forEach(f => {
+        // Avoid exact duplicate filenames already in list
+        const alreadyAdded = files.some(entry => entry.file.name === f.name && entry.file.size === f.size);
+        if (!alreadyAdded) files.push({ file: f, error: null });
+      });
+      render();
+    }
+
+    // ---- Remove a file ----
+    function removeFile(index) {
+      files.splice(index, 1);
+      render();
+    }
+
+    // ---- Render file list ----
+    function render() {
+      fileList.innerHTML = '';
+
+      files.forEach((entry, index) => {
+        const li = document.createElement('li');
+        li.className = 'file-item';
+        li.dataset.index = index;
+        li.draggable = true;
+
+        li.innerHTML = `
+          <span class="drag-handle">&#9776;</span>
+          <span class="file-name" title="${entry.file.name}">${entry.file.name}</span>
+          ${entry.error ? `<span class="file-error">${entry.error}</span>` : ''}
+          <button class="remove-btn" aria-label="Remove">&times;</button>
+        `;
+
+        li.querySelector('.remove-btn').addEventListener('click', () => removeFile(index));
+        fileList.appendChild(li);
+      });
+
+      // Show/hide merge button area
+      actions.classList.toggle('visible', files.length >= 2);
+      statusEl.textContent = '';
+    }
   </script>
 
 </body>
