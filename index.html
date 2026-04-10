@@ -291,10 +291,12 @@
       e.stopPropagation();
       const targetIndex = parseInt(e.currentTarget.dataset.index);
       if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+      if (dragSrcIndex < 0 || dragSrcIndex >= files.length) return;
 
-      // Move item in array
+      // When moving downward, removing the source item shifts subsequent indices by -1
       const moved = files.splice(dragSrcIndex, 1)[0];
-      files.splice(targetIndex, 0, moved);
+      const adjustedTarget = dragSrcIndex < targetIndex ? targetIndex - 1 : targetIndex;
+      files.splice(adjustedTarget, 0, moved);
       render();
     }
 
