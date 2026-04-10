@@ -312,12 +312,12 @@
 
     async function mergePDFs() {
       mergeBtn.disabled = true;
-      statusEl.textContent = 'Merging...';
 
-      // Clear previous errors
+      // Clear previous errors and re-render (render() clears statusEl, so set status after)
       files.forEach(entry => entry.error = null);
       render();
       mergeBtn.disabled = true; // re-disable after render
+      statusEl.textContent = 'Merging...';
 
       try {
         const { PDFDocument } = PDFLib;
@@ -386,7 +386,7 @@
       a.href     = url;
       a.download = filename;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
     }
   </script>
 
