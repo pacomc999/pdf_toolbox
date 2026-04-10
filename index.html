@@ -116,6 +116,33 @@
     }
     #actions.visible { display: flex; }
 
+    #filename-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #filename-row label {
+      font-size: 0.85rem;
+      color: #555;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #filename-input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #filename-input:focus { border-color: #4f46e5; }
+    #filename-ext {
+      font-size: 0.85rem;
+      color: #888;
+      flex-shrink: 0;
+    }
+
     #merge-btn {
       background: #4f46e5;
       color: #fff;
@@ -150,6 +177,11 @@
   <ul id="file-list"></ul>
 
   <div id="actions">
+    <div id="filename-row">
+      <label for="filename-input">Output name</label>
+      <input type="text" id="filename-input" placeholder="merged" spellcheck="false">
+      <span id="filename-ext">.pdf</span>
+    </div>
     <button id="merge-btn">Merge and Download</button>
     <p id="status"></p>
   </div>
@@ -166,8 +198,9 @@
     const pickLabel  = document.getElementById('pick-label');
     const fileList   = document.getElementById('file-list');
     const actions    = document.getElementById('actions');
-    const mergeBtn   = document.getElementById('merge-btn');
-    const statusEl   = document.getElementById('status');
+    const mergeBtn     = document.getElementById('merge-btn');
+    const statusEl     = document.getElementById('status');
+    const filenameInput = document.getElementById('filename-input');
 
     // ---- File picking ----
     pickLabel.addEventListener('click', () => fileInput.click());
@@ -353,7 +386,8 @@
         const anyFailed = files.some(entry => entry.error !== null);
 
         const pdfBytes = await merged.save();
-        downloadBlob(pdfBytes, 'merged.pdf');
+        const outputName = (filenameInput.value.trim() || 'merged') + '.pdf';
+        downloadBlob(pdfBytes, outputName);
 
         render(); // render first so status isn't wiped
         statusEl.textContent = anyFailed
