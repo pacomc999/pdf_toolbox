@@ -343,8 +343,8 @@
         // If every file had an error, bail out
         const allFailed = files.every(entry => entry.error !== null);
         if (allFailed) {
+          render(); // render first so status isn't wiped
           statusEl.textContent = 'No valid PDFs to merge.';
-          render();
           mergeBtn.disabled = false;
           return;
         }
@@ -355,11 +355,11 @@
         const pdfBytes = await merged.save();
         downloadBlob(pdfBytes, 'merged.pdf');
 
+        render(); // render first so status isn't wiped
         statusEl.textContent = anyFailed
           ? 'Done. Some files were skipped (see errors above).'
           : 'Done! Your merged PDF has been downloaded.';
 
-        render();
         mergeBtn.disabled = false;
 
       } catch (err) {
