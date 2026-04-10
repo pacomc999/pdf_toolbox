@@ -251,12 +251,58 @@
           removeFile(parseInt(e.currentTarget.closest('.file-item').dataset.index));
         });
 
+        li.addEventListener('dragstart', onDragStart);
+        li.addEventListener('dragover',  onDragOver);
+        li.addEventListener('dragleave', onDragLeave);
+        li.addEventListener('drop',      onDrop);
+        li.addEventListener('dragend',   onDragEnd);
+
         fileList.appendChild(li);
       });
 
       // Show/hide merge button area
       actions.classList.toggle('visible', files.length >= 2);
       statusEl.textContent = '';
+    }
+
+    // ---- Drag-to-reorder handlers ----
+    let dragSrcIndex = null;
+
+    function onDragStart(e) {
+      dragSrcIndex = parseInt(e.currentTarget.dataset.index);
+      e.currentTarget.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Required for Firefox
+      e.dataTransfer.setData('text/plain', dragSrcIndex);
+    }
+
+    function onDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      e.currentTarget.classList.add('drag-target');
+    }
+
+    function onDragLeave(e) {
+      e.currentTarget.classList.remove('drag-target');
+    }
+
+    function onDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const targetIndex = parseInt(e.currentTarget.dataset.index);
+      if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+
+      // Move item in array
+      const moved = files.splice(dragSrcIndex, 1)[0];
+      files.splice(targetIndex, 0, moved);
+      render();
+    }
+
+    function onDragEnd(e) {
+      e.currentTarget.classList.remove('dragging');
+      // Clean up any leftover drag-target highlights
+      document.querySelectorAll('.drag-target').forEach(el => el.classList.remove('drag-target'));
+      dragSrcIndex = null;
     }
   </script>
 
