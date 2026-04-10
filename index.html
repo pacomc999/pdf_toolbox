@@ -219,14 +219,38 @@
         li.dataset.index = index;
         li.draggable = true;
 
-        li.innerHTML = `
-          <span class="drag-handle">&#9776;</span>
-          <span class="file-name" title="${entry.file.name}">${entry.file.name}</span>
-          ${entry.error ? `<span class="file-error">${entry.error}</span>` : ''}
-          <button class="remove-btn" aria-label="Remove">&times;</button>
-        `;
+        // Build inner elements safely (no innerHTML interpolation of filenames)
+        const handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.innerHTML = '&#9776;';
 
-        li.querySelector('.remove-btn').addEventListener('click', () => removeFile(index));
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'file-name';
+        nameSpan.textContent = entry.file.name;
+        nameSpan.title = entry.file.name;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('aria-label', 'Remove');
+        removeBtn.textContent = '\u00D7';
+
+        li.appendChild(handle);
+        li.appendChild(nameSpan);
+
+        if (entry.error) {
+          const errSpan = document.createElement('span');
+          errSpan.className = 'file-error';
+          errSpan.textContent = entry.error;
+          li.appendChild(errSpan);
+        }
+
+        li.appendChild(removeBtn);
+
+        // Read index from dataset at click time, not from closure
+        removeBtn.addEventListener('click', (e) => {
+          removeFile(parseInt(e.currentTarget.closest('.file-item').dataset.index));
+        });
+
         fileList.appendChild(li);
       });
 
