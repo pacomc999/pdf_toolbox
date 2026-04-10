@@ -306,6 +306,88 @@
       document.querySelectorAll('.drag-target').forEach(el => el.classList.remove('drag-target'));
       dragSrcIndex = null;
     }
+
+    // ---- Merge and download ----
+    mergeBtn.addEventListener('click', mergePDFs);
+
+    async function mergePDFs() {
+      mergeBtn.disabled = true;
+      statusEl.textContent = 'Merging...';
+
+      // Clear previous errors
+      files.forEach(entry => entry.error = null);
+      render();
+      mergeBtn.disabled = true; // re-disable after render
+
+      try {
+        const { PDFDocument } = PDFLib;
+        const merged = await PDFDocument.create();
+
+        for (const entry of files) {
+          // Read file as ArrayBuffer
+          const arrayBuffer = await readFileAsArrayBuffer(entry.file);
+
+          let srcDoc;
+          try {
+            srcDoc = await PDFDocument.load(arrayBuffer);
+          } catch (err) {
+            entry.error = 'Not a valid PDF';
+            continue; // skip this file, keep going
+          }
+
+          const pageIndices = srcDoc.getPageIndices();
+          const copiedPages = await merged.copyPages(srcDoc, pageIndices);
+          copiedPages.forEach(page => merged.addPage(page));
+        }
+
+        // If every file had an error, bail out
+        const allFailed = files.every(entry => entry.error !== null);
+        if (allFailed) {
+          statusEl.textContent = 'No valid PDFs to merge.';
+          render();
+          mergeBtn.disabled = false;
+          return;
+        }
+
+        // Check if any had errors to warn user
+        const anyFailed = files.some(entry => entry.error !== null);
+
+        const pdfBytes = await merged.save();
+        downloadBlob(pdfBytes, 'merged.pdf');
+
+        statusEl.textContent = anyFailed
+          ? 'Done. Some files were skipped (see errors above).'
+          : 'Done! Your merged PDF has been downloaded.';
+
+        render();
+        mergeBtn.disabled = false;
+
+      } catch (err) {
+        statusEl.textContent = 'Something went wrong. Please try again.';
+        mergeBtn.disabled = false;
+      }
+    }
+
+    // ---- Helper: read File as ArrayBuffer ----
+    function readFileAsArrayBuffer(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // ---- Helper: trigger file download ----
+    function downloadBlob(bytes, filename) {
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   </script>
 
 </body>
