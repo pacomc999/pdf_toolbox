@@ -140,6 +140,40 @@
 </head>
 <body>
 
+  <!-- Logo: two source documents flowing into one merged document -->
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 72" width="120" height="72" aria-hidden="true" style="margin-bottom: 8px;">
+
+    <!-- Source doc 1 (back, lightest) -->
+    <g opacity="0.35">
+      <path d="M4 8 L20 8 L27 15 L27 52 L4 52 Z" fill="#4f46e5"/>
+      <path d="M20 8 L20 15 L27 15" fill="none" stroke="#c7d2fe" stroke-width="1"/>
+    </g>
+
+    <!-- Source doc 2 (front, medium) -->
+    <g opacity="0.65">
+      <path d="M10 2 L26 2 L33 9 L33 46 L10 46 Z" fill="#4f46e5"/>
+      <path d="M26 2 L26 9 L33 9" fill="none" stroke="#c7d2fe" stroke-width="1"/>
+      <line x1="15" y1="19" x2="27" y2="19" stroke="white" stroke-width="1.5" opacity="0.5"/>
+      <line x1="15" y1="24" x2="27" y2="24" stroke="white" stroke-width="1.5" opacity="0.5"/>
+      <line x1="15" y1="29" x2="23" y2="29" stroke="white" stroke-width="1.5" opacity="0.5"/>
+    </g>
+
+    <!-- Merge arrow -->
+    <line x1="40" y1="28" x2="57" y2="28" stroke="#818cf8" stroke-width="2" stroke-linecap="round"/>
+    <polyline points="51,22 58,28 51,34" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Merged doc (full, prominent) -->
+    <path d="M64 0 L94 0 L106 12 L106 72 L64 72 Z" fill="#4f46e5"/>
+    <path d="M94 0 L94 12 L106 12" fill="#3730a3"/>
+    <!-- Page lines -->
+    <line x1="72" y1="24" x2="98" y2="24" stroke="white" stroke-width="1.5" opacity="0.45"/>
+    <line x1="72" y1="31" x2="98" y2="31" stroke="white" stroke-width="1.5" opacity="0.45"/>
+    <line x1="72" y1="38" x2="98" y2="38" stroke="white" stroke-width="1.5" opacity="0.45"/>
+    <line x1="72" y1="45" x2="90" y2="45" stroke="white" stroke-width="1.5" opacity="0.45"/>
+    <line x1="72" y1="52" x2="95" y2="52" stroke="white" stroke-width="1.5" opacity="0.45"/>
+    <line x1="72" y1="59" x2="84" y2="59" stroke="white" stroke-width="1.5" opacity="0.45"/>
+  </svg>
+
   <h1>PDF Merger</h1>
 
   <div id="drop-zone">
