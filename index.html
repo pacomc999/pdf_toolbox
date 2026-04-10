@@ -273,7 +273,7 @@
       e.currentTarget.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
       // Required for Firefox
-      e.dataTransfer.setData('text/plain', dragSrcIndex);
+      e.dataTransfer.setData('text/plain', String(dragSrcIndex));
     }
 
     function onDragOver(e) {
