@@ -11,8 +11,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="PDF Merger">
-  <meta name="theme-color" content="#f9f8f9" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#08090a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0c0d" media="(prefers-color-scheme: dark)">
 
   <style>
     /* ==========================================================
@@ -32,16 +32,16 @@
 
     /* ---- Colours: light theme ---- */
     :root {
-      --frame: #f9f8f9;       /* the background around the panel */
-      --panel: #ffffff;       /* the raised panel */
-      --raised: #f4f2f4;      /* hover shade */
-      --raised-2: #eeedef;    /* pressed shade */
+      --frame: #ffffff;       /* the page */
+      --panel: #ffffff;       /* file rows and fields */
+      --raised: #f3f3f5;      /* hover shade */
+      --raised-2: #e9e9ec;    /* pressed shade */
       --text-1: #282a30;      /* main text */
-      --text-2: #6f6e77;      /* secondary text */
-      --text-3: #86848d;      /* quiet text */
-      --line-2: #dcdbdd;      /* dashed drop area */
-      --hairline: rgba(0, 0, 0, 0.08);
-      --hairline-strong: rgba(0, 0, 0, 0.14);
+      --text-2: #4f4e57;      /* secondary text */
+      --text-3: #6b6a73;      /* quiet text */
+      --line-2: #b4b3ba;      /* dashed drop area */
+      --hairline: rgba(0, 0, 0, 0.12);
+      --hairline-strong: rgba(0, 0, 0, 0.2);
       --brand: #5e6ad2;       /* the one indigo */
       --brand-hover: #4f5bc4;
       --brand-tint: #f1f1ff;
@@ -53,16 +53,16 @@
     /* ---- Colours: dark theme (follows the computer's setting) ---- */
     @media (prefers-color-scheme: dark) {
       :root {
-        --frame: #08090a;
-        --panel: #0f1011;
-        --raised: #141516;
-        --raised-2: #191a1b;
+        --frame: #0b0c0d;
+        --panel: #15161a;
+        --raised: #1c1d21;
+        --raised-2: #232428;
         --text-1: #f7f8f8;
-        --text-2: #8a8f98;
-        --text-3: #62666d;
-        --line-2: #34343a;
-        --hairline: rgba(255, 255, 255, 0.08);
-        --hairline-strong: rgba(255, 255, 255, 0.12);
+        --text-2: #b4b9c1;
+        --text-3: #8a8f98;
+        --line-2: #4c4c54;
+        --hairline: rgba(255, 255, 255, 0.12);
+        --hairline-strong: rgba(255, 255, 255, 0.2);
         --brand-hover: #6b77e0;
         --brand-tint: #18182f;
         --error: #f06a6a;
@@ -116,7 +116,7 @@
       border-color: var(--brand);
       background: var(--brand-tint);
     }
-    #drop-zone p { color: var(--text-2); }
+    #drop-zone p { color: var(--text-1); }
     #drop-zone span { color: var(--brand); font-weight: 510; cursor: pointer; }
     #file-input { display: none; }
 
