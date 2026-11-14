@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Merger</title>
+  <title>PDF Toolbox</title>
 
   <!-- Web app setup: name, icon, and its own window when installed -->
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="PDF Merger">
+  <meta name="apple-mobile-web-app-title" content="PDF Toolbox">
   <!-- Colour of the installed app's window bar; set to match the page below -->
   <meta name="theme-color" id="theme-color" content="#ffffff">
 
@@ -31,7 +31,7 @@
     }
 
     try {
-      const savedTheme = localStorage.getItem('mergepdf:theme');
+      const savedTheme = localStorage.getItem('pdf_toolbox:theme');
       if (savedTheme) document.documentElement.dataset.theme = savedTheme;
     } catch (error) { /* storage blocked: follow the computer */ }
     updateBarColour();
@@ -289,12 +289,42 @@
       align-items: center;
       gap: 8px;
     }
-    #filename-row label {
+    #filename-row label,
+    .option-label {
+      width: 92px;  /* same width on both rows, so the controls line up */
       font-weight: 510;
       color: var(--text-2);
       white-space: nowrap;
       flex-shrink: 0;
     }
+    .option-row { display: flex; align-items: center; gap: 8px; }
+
+    /* ---- Segmented choice (Original / Medium / Small) ----
+       Radio buttons drawn as one bar; the chosen one is lifted out. */
+    .segmented {
+      display: flex;
+      padding: 2px;
+      border-radius: 8px;
+      background: var(--raised-2);
+    }
+    .segmented input { position: absolute; opacity: 0; pointer-events: none; }
+    .segmented span {
+      display: block;
+      padding: 5px 12px;
+      border-radius: 6px;
+      color: var(--text-2);
+      font-weight: 510;
+      cursor: pointer;
+      transition: background-color 0.1s var(--ease), color 0.1s var(--ease);
+    }
+    .segmented span:hover { color: var(--text-1); }
+    .segmented input:checked + span {
+      background: var(--panel);
+      color: var(--text-1);
+      box-shadow: 0 0 0 1px var(--hairline-strong);
+    }
+    .segmented input:focus-visible + span { outline: 1px solid var(--brand); outline-offset: 1px; }
+    .segmented input:disabled + span { opacity: 0.4; cursor: not-allowed; }
     #filename-input {
       flex: 1;
       min-width: 0;
@@ -342,7 +372,7 @@
   <main class="panel">
 
   <div class="title-row">
-    <h1>PDF Merger</h1>
+    <h1>PDF Toolbox</h1>
     <label class="theme-switch" title="Dark mode">
       <!-- Moon icon instead of the words; aria-label keeps the name for screen readers -->
       <svg class="moon" viewBox="0 0 24 24" aria-hidden="true">
@@ -352,7 +382,7 @@
       <span class="track"></span>
     </label>
   </div>
-  <p class="subtitle">Join PDF files into one. Everything stays on your device.</p>
+  <p class="subtitle">Merge PDF files and make them smaller. Everything stays on your device.</p>
 
   <div id="drop-zone">
     <p>Drag and drop PDF files here, or <span id="pick-label">browse</span></p>
@@ -362,7 +392,16 @@
   <ul id="file-list"></ul>
 
   <div id="actions">
-    <div id="filename-row">
+    <!-- Shrinks the pictures inside (scans, photos); text stays sharp -->
+    <div id="size-row" class="option-row">
+      <span class="option-label">Image size</span>
+      <div class="segmented" role="radiogroup" aria-label="Image size">
+        <label><input type="radio" name="level" value="original" checked><span>Original</span></label>
+        <label><input type="radio" name="level" value="medium"><span>Medium</span></label>
+        <label><input type="radio" name="level" value="small"><span>Small</span></label>
+      </div>
+    </div>
+    <div id="filename-row" class="option-row">
       <label for="filename-input">Output name</label>
       <input type="text" id="filename-input" placeholder="merged" spellcheck="false">
       <span id="filename-ext">.pdf</span>
@@ -375,6 +414,8 @@
 
   <!-- pdf-lib 1.17.1 (MIT licence), kept in the project so merging works offline -->
   <script src="vendor/pdf-lib.min.js"></script>
+  <!-- Shrinks the pictures inside a PDF -->
+  <script src="compress.js"></script>
   <script>
     // ---- Offline support (web app) ----
     // Registers sw.js, which keeps a copy of the app on the device.
@@ -388,7 +429,7 @@
     // ---- Dark mode switch ----
     // Until it is used, the page follows the computer's light or dark setting.
     // Once flipped, the choice is remembered in this browser.
-    const THEME_KEY = 'mergepdf:theme';
+    const THEME_KEY = 'pdf_toolbox:theme';
     const themeSwitch = document.getElementById('theme-switch');
     const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -518,10 +559,42 @@
         fileList.appendChild(li);
       });
 
-      // Show/hide merge button area
-      actions.classList.toggle('visible', files.length >= 2);
+      // One file can be compressed, two or more merged
+      actions.classList.toggle('visible', files.length >= 1);
+      updateOptions();
       statusEl.textContent = '';
     }
+
+    // ---- Image size choice ----
+    const levelInputs = document.querySelectorAll('input[name="level"]');
+    const originalInput = document.querySelector('input[name="level"][value="original"]');
+
+    function chosenLevel() {
+      return document.querySelector('input[name="level"]:checked').value;
+    }
+
+    // With a single file there is nothing to merge, so "Original" would do
+    // nothing: it is switched off and Medium is picked instead.
+    // The button and the suggested file name follow what will happen.
+    function updateOptions() {
+      const single = files.length === 1;
+      originalInput.disabled = single;
+      if (single && chosenLevel() === 'original') {
+        document.querySelector('input[name="level"][value="medium"]').checked = true;
+      }
+      const compressing = chosenLevel() !== 'original';
+      if (single) mergeBtn.textContent = 'Compress and Download';
+      else mergeBtn.textContent = compressing ? 'Merge, Compress and Download' : 'Merge and Download';
+      filenameInput.placeholder = defaultName();
+    }
+
+    // "merged" for several files, "<name> compressed" for one
+    function defaultName() {
+      if (files.length !== 1) return 'merged';
+      return files[0].file.name.replace(/\.pdf$/i, '') + ' compressed';
+    }
+
+    levelInputs.forEach(input => input.addEventListener('change', updateOptions));
 
     // ---- Drag-to-reorder handlers ----
     let dragSrcIndex = null;
@@ -566,17 +639,17 @@
       dragSrcIndex = null;
     }
 
-    // ---- Merge and download ----
-    mergeBtn.addEventListener('click', mergePDFs);
+    // ---- Merge, compress and download ----
+    mergeBtn.addEventListener('click', makePDF);
 
-    async function mergePDFs() {
+    async function makePDF() {
       mergeBtn.disabled = true;
 
       // Clear previous errors and re-render (render() clears statusEl, so set status after)
       files.forEach(entry => entry.error = null);
       render();
       mergeBtn.disabled = true; // re-disable after render
-      statusEl.textContent = 'Merging...';
+      statusEl.textContent = files.length > 1 ? 'Merging...' : 'Reading...';
 
       try {
         const { PDFDocument } = PDFLib;
@@ -611,14 +684,20 @@
         // Check if any had errors to warn user
         const anyFailed = files.some(entry => entry.error !== null);
 
+        // Shrink the pictures, if a smaller size was chosen
+        const level = chosenLevel();
+        let shrunk = 0;
+        if (level !== 'original') {
+          statusEl.textContent = 'Shrinking pictures...';
+          shrunk = await compressImages(merged, level);
+        }
+
         const pdfBytes = await merged.save();
-        const outputName = (filenameInput.value.trim() || 'merged') + '.pdf';
+        const outputName = (filenameInput.value.trim() || defaultName()) + '.pdf';
         downloadBlob(pdfBytes, outputName);
 
         render(); // render first so status isn't wiped
-        statusEl.textContent = anyFailed
-          ? 'Done. Some files were skipped (see errors above).'
-          : 'Done! Your merged PDF has been downloaded.';
+        statusEl.textContent = doneMessage(level, shrunk, pdfBytes.length, anyFailed);
 
         mergeBtn.disabled = false;
 
@@ -626,6 +705,17 @@
         statusEl.textContent = 'Something went wrong. Please try again.';
         mergeBtn.disabled = false;
       }
+    }
+
+    // ---- The message after downloading, with the size before and after ----
+    function doneMessage(level, shrunk, newSize, anyFailed) {
+      const skipped = anyFailed ? ' Some files were skipped (see errors above).' : '';
+      if (level === 'original') return 'Done! Your merged PDF has been downloaded.' + skipped;
+
+      const oldSize = files.filter(entry => !entry.error).reduce((sum, entry) => sum + entry.file.size, 0);
+      const sizes = formatSize(oldSize) + ' to ' + formatSize(newSize);
+      if (shrunk === 0) return 'Done (' + sizes + '). There were no pictures to shrink, so the size barely changed.' + skipped;
+      return 'Done! ' + sizes + '.' + skipped;
     }
 
     // ---- Helper: read File as ArrayBuffer ----

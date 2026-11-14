@@ -1,9 +1,9 @@
-"""Draws the app icons for the PDF merger.
+"""Draws the app icons for PDF Toolbox.
 
 The icon shows two pages stacked on top of each other (two PDFs
 becoming one) on the indigo colour of the Merge button.
 
-Run from the mergepdf folder:
+Run from the project folder:
     python tools/make_icons.py
 """
 

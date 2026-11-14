@@ -1,7 +1,7 @@
 {
-  "name": "PDF Merger",
-  "short_name": "PDF Merger",
-  "description": "Join PDF files into one, right on your device.",
+  "name": "PDF Toolbox",
+  "short_name": "PDF Toolbox",
+  "description": "Merge PDF files and make them smaller, right on your device.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
