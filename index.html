@@ -14,6 +14,13 @@
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0b0c0d" media="(prefers-color-scheme: dark)">
 
+  <!-- Applies a saved Dark mode choice before the page is drawn, so it never flashes -->
+  <script>
+    try {
+      const savedTheme = localStorage.getItem('mergepdf:theme');
+      if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+    } catch (error) { /* storage blocked: follow the computer */ }
+  </script>
   <style>
     /* ==========================================================
        The look shared with Walk Studio (after Linear): warm low
@@ -50,9 +57,26 @@
       --font: "Inter", "SF Pro Display", -apple-system, "Segoe UI", system-ui, sans-serif;
     }
 
-    /* ---- Colours: dark theme (follows the computer's setting) ---- */
+    /* ---- Colours: dark theme ----
+       On when the Dark mode switch is on (data-theme="dark"), or when the
+       computer is in dark mode and the switch was never used. */
+    :root[data-theme="dark"] {
+      --frame: #0b0c0d;
+      --panel: #15161a;
+      --raised: #1c1d21;
+      --raised-2: #232428;
+      --text-1: #f7f8f8;
+      --text-2: #b4b9c1;
+      --text-3: #8a8f98;
+      --line-2: #4c4c54;
+      --hairline: rgba(255, 255, 255, 0.12);
+      --hairline-strong: rgba(255, 255, 255, 0.2);
+      --brand-hover: #6b77e0;
+      --brand-tint: #18182f;
+      --error: #f06a6a;
+    }
     @media (prefers-color-scheme: dark) {
-      :root {
+      :root:not([data-theme="light"]) {
         --frame: #0b0c0d;
         --panel: #15161a;
         --raised: #1c1d21;
@@ -98,6 +122,46 @@
       margin-bottom: 4px;
     }
     .subtitle { color: var(--text-2); margin-bottom: 24px; }
+
+    /* Title on the left, Dark mode switch on the right */
+    .title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
+    /* ---- Dark mode switch ----
+       A checkbox drawn as a small switch. The knob jumps (no sliding),
+       only the colours fade, like every other control here. */
+    .theme-switch {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-2);
+      font-weight: 510;
+      cursor: pointer;
+      user-select: none;
+    }
+    .theme-switch input { position: absolute; opacity: 0; pointer-events: none; }
+    .theme-switch .track {
+      position: relative;
+      width: 30px;
+      height: 18px;
+      border-radius: 9px;
+      background: var(--raised-2);
+      box-shadow: 0 0 0 1px var(--hairline-strong);
+      transition: background-color 0.1s var(--ease);
+    }
+    .theme-switch .track::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+    .theme-switch input:checked + .track { background: var(--brand); box-shadow: none; }
+    .theme-switch input:checked + .track::after { left: 14px; }
+    .theme-switch input:focus-visible + .track { outline: 1px solid var(--brand); outline-offset: 2px; }
 
     /* Keyboard focus: a thin indigo outline */
     :focus-visible { outline: 1px solid var(--brand); outline-offset: 2px; }
@@ -254,7 +318,14 @@
   <!-- One column that holds the whole tool -->
   <main class="panel">
 
-  <h1>PDF Merger</h1>
+  <div class="title-row">
+    <h1>PDF Merger</h1>
+    <label class="theme-switch">
+      Dark mode
+      <input type="checkbox" id="theme-switch" role="switch">
+      <span class="track"></span>
+    </label>
+  </div>
   <p class="subtitle">Join PDF files into one. Everything stays on your device.</p>
 
   <div id="drop-zone">
@@ -287,6 +358,32 @@
         // Not fatal: the app still works, just not offline
       });
     }
+
+    // ---- Dark mode switch ----
+    // Until it is used, the page follows the computer's light or dark setting.
+    // Once flipped, the choice is remembered in this browser.
+    const THEME_KEY = 'mergepdf:theme';
+    const themeSwitch = document.getElementById('theme-switch');
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+    // Shows the switch on when the page is dark, whatever made it dark
+    function updateThemeSwitch() {
+      const chosen = document.documentElement.dataset.theme;
+      themeSwitch.checked = chosen ? chosen === 'dark' : systemDark.matches;
+    }
+
+    themeSwitch.addEventListener('change', () => {
+      const theme = themeSwitch.checked ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+      try {
+        localStorage.setItem(THEME_KEY, theme);
+      } catch (error) {
+        // Storage blocked: the switch still works for this visit
+      }
+    });
+
+    systemDark.addEventListener('change', updateThemeSwitch); // computer setting changed
+    updateThemeSwitch();
 
     // ---- State ----
     // files is an array of { file: File, error: string|null }
