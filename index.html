@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PDF Merger</title>
+
+  <!-- Web app setup: name, icon, and its own window when installed -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="PDF Merger">
+  <meta name="theme-color" content="#4f46e5">
+
   <style>
     /* Reset and base */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -186,8 +195,18 @@
     <p id="status"></p>
   </div>
 
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <!-- pdf-lib 1.17.1 (MIT licence), kept in the project so merging works offline -->
+  <script src="vendor/pdf-lib.min.js"></script>
   <script>
+    // ---- Offline support (web app) ----
+    // Registers sw.js, which keeps a copy of the app on the device.
+    // Only works on a real web address, not when opening the file directly.
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // Not fatal: the app still works, just not offline
+      });
+    }
+
     // ---- State ----
     // files is an array of { file: File, error: string|null }
     let files = [];
