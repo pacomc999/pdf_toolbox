@@ -426,10 +426,11 @@
       if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
       if (dragSrcIndex < 0 || dragSrcIndex >= files.length) return;
 
-      // When moving downward, removing the source item shifts subsequent indices by -1
+      // The dragged file takes the place of the row it was dropped on:
+      // dragged down it lands just below that row, dragged up just above it.
+      // (Taking it out first and putting it back at targetIndex does both.)
       const moved = files.splice(dragSrcIndex, 1)[0];
-      const adjustedTarget = dragSrcIndex < targetIndex ? targetIndex - 1 : targetIndex;
-      files.splice(adjustedTarget, 0, moved);
+      files.splice(targetIndex, 0, moved);
       render();
     }
 
