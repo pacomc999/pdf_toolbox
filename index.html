@@ -11,15 +11,30 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="PDF Merger">
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0b0c0d" media="(prefers-color-scheme: dark)">
+  <!-- Colour of the installed app's window bar; set to match the page below -->
+  <meta name="theme-color" id="theme-color" content="#ffffff">
 
-  <!-- Applies a saved Dark mode choice before the page is drawn, so it never flashes -->
+  <!-- Applies a saved Dark mode choice before the page is drawn, so it never flashes,
+       and gives the window bar the matching colour -->
   <script>
+    const BAR_COLOURS = { light: '#ffffff', dark: '#0b0c0d' }; // same as the page background
+
+    // "dark" or "light": the switch's saved choice, else the computer's setting
+    function currentTheme() {
+      const chosen = document.documentElement.dataset.theme;
+      if (chosen) return chosen;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function updateBarColour() {
+      document.getElementById('theme-color').content = BAR_COLOURS[currentTheme()];
+    }
+
     try {
       const savedTheme = localStorage.getItem('mergepdf:theme');
       if (savedTheme) document.documentElement.dataset.theme = savedTheme;
     } catch (error) { /* storage blocked: follow the computer */ }
+    updateBarColour();
   </script>
   <style>
     /* ==========================================================
@@ -366,15 +381,17 @@
     const themeSwitch = document.getElementById('theme-switch');
     const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 
-    // Shows the switch on when the page is dark, whatever made it dark
+    // Shows the switch on when the page is dark, whatever made it dark,
+    // and gives the window bar the matching colour
     function updateThemeSwitch() {
-      const chosen = document.documentElement.dataset.theme;
-      themeSwitch.checked = chosen ? chosen === 'dark' : systemDark.matches;
+      themeSwitch.checked = currentTheme() === 'dark';
+      updateBarColour();
     }
 
     themeSwitch.addEventListener('change', () => {
       const theme = themeSwitch.checked ? 'dark' : 'light';
       document.documentElement.dataset.theme = theme;
+      updateBarColour();
       try {
         localStorage.setItem(THEME_KEY, theme);
       } catch (error) {
