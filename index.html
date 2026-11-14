@@ -154,6 +154,14 @@
       user-select: none;
     }
     .theme-switch input { position: absolute; opacity: 0; pointer-events: none; }
+    .theme-switch .moon {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linejoin: round;
+    }
     .theme-switch .track {
       position: relative;
       width: 30px;
@@ -335,9 +343,12 @@
 
   <div class="title-row">
     <h1>PDF Merger</h1>
-    <label class="theme-switch">
-      Dark mode
-      <input type="checkbox" id="theme-switch" role="switch">
+    <label class="theme-switch" title="Dark mode">
+      <!-- Moon icon instead of the words; aria-label keeps the name for screen readers -->
+      <svg class="moon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+      </svg>
+      <input type="checkbox" id="theme-switch" role="switch" aria-label="Dark mode">
       <span class="track"></span>
     </label>
   </div>
