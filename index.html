@@ -109,6 +109,8 @@
     }
 
     /* ---- Reset and base ---- */
+    /* "hidden" always wins, even over display: flex below */
+    [hidden] { display: none !important; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: var(--font);
@@ -204,7 +206,7 @@
       background: var(--brand-tint);
     }
     #drop-zone p { color: var(--text-1); }
-    #drop-zone span { color: var(--brand); font-weight: 510; cursor: pointer; }
+    #pick-label { color: var(--brand); font-weight: 510; cursor: pointer; } /* only "browse" is indigo */
     #file-input { display: none; }
 
     /* ---- File list ---- */
@@ -325,6 +327,10 @@
     }
     .segmented input:focus-visible + span { outline: 1px solid var(--brand); outline-offset: 1px; }
     .segmented input:disabled + span { opacity: 0.4; cursor: not-allowed; }
+
+    /* The Merge / Compress switch under the subtitle */
+    .tool-tabs { align-self: flex-start; margin-bottom: 16px; }
+    .tool-tabs span { padding: 6px 16px; }
     #filename-input {
       flex: 1;
       min-width: 0;
@@ -384,20 +390,25 @@
   </div>
   <p class="subtitle">Merge PDF files and make them smaller. Everything stays on your device.</p>
 
+  <!-- Which tool is showing: a two part switch, same style as Image size -->
+  <div class="segmented tool-tabs" role="radiogroup" aria-label="Tool">
+    <label><input type="radio" name="tool" value="merge" checked><span>Merge</span></label>
+    <label><input type="radio" name="tool" value="compress"><span>Compress</span></label>
+  </div>
+
   <div id="drop-zone">
-    <p>Drag and drop PDF files here, or <span id="pick-label">browse</span></p>
+    <p><span id="drop-text">Drag and drop PDF files here</span>, or <span id="pick-label">browse</span></p>
     <input type="file" id="file-input" accept=".pdf,application/pdf" multiple>
   </div>
 
   <ul id="file-list"></ul>
 
   <div id="actions">
-    <!-- Shrinks the pictures inside (scans, photos); text stays sharp -->
+    <!-- Compress only: how much to shrink the pictures inside (scans, photos); text stays sharp -->
     <div id="size-row" class="option-row">
       <span class="option-label">Image size</span>
       <div class="segmented" role="radiogroup" aria-label="Image size">
-        <label><input type="radio" name="level" value="original" checked><span>Original</span></label>
-        <label><input type="radio" name="level" value="medium"><span>Medium</span></label>
+        <label><input type="radio" name="level" value="medium" checked><span>Medium</span></label>
         <label><input type="radio" name="level" value="small"><span>Small</span></label>
       </div>
     </div>
@@ -455,15 +466,21 @@
     updateThemeSwitch();
 
     // ---- State ----
-    // files is an array of { file: File, error: string|null }
-    let files = [];
+    // Each tool keeps its own list, so switching tabs never loses files.
+    // A list holds { file: File, error: string|null } objects;
+    // "files" is the list of the tool that is showing.
+    const filesByTool = { merge: [], compress: [] };
+    let tool = 'merge';
+    let files = filesByTool.merge;
 
     // ---- Element refs ----
     const dropZone   = document.getElementById('drop-zone');
+    const dropText   = document.getElementById('drop-text');
     const fileInput  = document.getElementById('file-input');
     const pickLabel  = document.getElementById('pick-label');
     const fileList   = document.getElementById('file-list');
     const actions    = document.getElementById('actions');
+    const sizeRow    = document.getElementById('size-row');
     const mergeBtn     = document.getElementById('merge-btn');
     const statusEl     = document.getElementById('status');
     const filenameInput = document.getElementById('filename-input');
@@ -493,7 +510,16 @@
     });
 
     // ---- Add files to state ----
+    // Merge collects several files; Compress works on one, so a new file
+    // replaces the old one. (Lists are changed in place, never replaced,
+    // so filesByTool always holds the same lists.)
     function addFiles(newFiles) {
+      if (newFiles.length === 0) return;
+      if (tool === 'compress') {
+        files.splice(0, files.length, { file: newFiles[0], error: null });
+        render();
+        return;
+      }
       newFiles.forEach(f => {
         // Avoid exact duplicate filenames already in list
         const alreadyAdded = files.some(entry => entry.file.name === f.name && entry.file.size === f.size);
@@ -511,18 +537,15 @@
     // ---- Render file list ----
     function render() {
       fileList.innerHTML = '';
+      const canReorder = tool === 'merge';
 
       files.forEach((entry, index) => {
         const li = document.createElement('li');
         li.className = 'file-item';
         li.dataset.index = index;
-        li.draggable = true;
+        li.draggable = canReorder;
 
         // Build inner elements safely (no innerHTML interpolation of filenames)
-        const handle = document.createElement('span');
-        handle.className = 'drag-handle';
-        handle.innerHTML = '&#9776;';
-
         const nameSpan = document.createElement('span');
         nameSpan.className = 'file-name';
         nameSpan.textContent = entry.file.name;
@@ -531,9 +554,17 @@
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-btn';
         removeBtn.setAttribute('aria-label', 'Remove');
-        removeBtn.textContent = '\u00D7';
+        removeBtn.textContent = '×';
 
-        li.appendChild(handle);
+        // The drag handle only where the order matters (Merge)
+        if (canReorder) {
+          const handle = document.createElement('span');
+          handle.className = 'drag-handle';
+          handle.innerHTML = '&#9776;';
+          li.appendChild(handle);
+        } else {
+          li.style.cursor = 'default';
+        }
         li.appendChild(nameSpan);
 
         if (entry.error) {
@@ -550,51 +581,73 @@
           removeFile(parseInt(e.currentTarget.closest('.file-item').dataset.index));
         });
 
-        li.addEventListener('dragstart', onDragStart);
-        li.addEventListener('dragover',  onDragOver);
-        li.addEventListener('dragleave', onDragLeave);
-        li.addEventListener('drop',      onDrop);
-        li.addEventListener('dragend',   onDragEnd);
+        if (canReorder) {
+          li.addEventListener('dragstart', onDragStart);
+          li.addEventListener('dragover',  onDragOver);
+          li.addEventListener('dragleave', onDragLeave);
+          li.addEventListener('drop',      onDrop);
+          li.addEventListener('dragend',   onDragEnd);
+        }
 
         fileList.appendChild(li);
       });
 
-      // One file can be compressed, two or more merged
-      actions.classList.toggle('visible', files.length >= 1);
+      // Merge needs two files, Compress one
+      const needed = tool === 'merge' ? 2 : 1;
+      actions.classList.toggle('visible', files.length >= needed);
       updateOptions();
       statusEl.textContent = '';
     }
 
-    // ---- Image size choice ----
-    const levelInputs = document.querySelectorAll('input[name="level"]');
-    const originalInput = document.querySelector('input[name="level"][value="original"]');
+    // ---- Tool tabs (Merge / Compress) ----
+    const TOOL_KEY = 'pdf_toolbox:tool';
+    const toolInputs = document.querySelectorAll('input[name="tool"]');
 
+    // Shows one tool: its own file list, texts and options.
+    // The choice is remembered, so the app opens on the last tool used.
+    function switchTool(name) {
+      tool = name;
+      files = filesByTool[name];
+      document.querySelector('input[name="tool"][value="' + name + '"]').checked = true;
+      fileInput.multiple = name === 'merge';
+      dropText.textContent = name === 'merge' ? 'Drag and drop PDF files here' : 'Drag and drop a PDF here';
+      filenameInput.value = ''; // each tool suggests its own name
+      render();
+      try {
+        localStorage.setItem(TOOL_KEY, name);
+      } catch (error) {
+        // Storage blocked: the tabs still work for this visit
+      }
+    }
+
+    function savedTool() {
+      try {
+        return localStorage.getItem(TOOL_KEY) === 'compress' ? 'compress' : 'merge';
+      } catch (error) {
+        return 'merge';
+      }
+    }
+
+    toolInputs.forEach(input => input.addEventListener('change', () => switchTool(input.value)));
+
+    // ---- Options for the tool that is showing ----
     function chosenLevel() {
       return document.querySelector('input[name="level"]:checked').value;
     }
 
-    // With a single file there is nothing to merge, so "Original" would do
-    // nothing: it is switched off and Medium is picked instead.
-    // The button and the suggested file name follow what will happen.
+    // Image size only shows in Compress; the button and the suggested
+    // file name follow the tool
     function updateOptions() {
-      const single = files.length === 1;
-      originalInput.disabled = single;
-      if (single && chosenLevel() === 'original') {
-        document.querySelector('input[name="level"][value="medium"]').checked = true;
-      }
-      const compressing = chosenLevel() !== 'original';
-      if (single) mergeBtn.textContent = 'Compress and Download';
-      else mergeBtn.textContent = compressing ? 'Merge, Compress and Download' : 'Merge and Download';
+      sizeRow.hidden = tool !== 'compress';
+      mergeBtn.textContent = tool === 'merge' ? 'Merge and Download' : 'Compress and Download';
       filenameInput.placeholder = defaultName();
     }
 
-    // "merged" for several files, "<name> compressed" for one
+    // "merged" when merging, "<name> compressed" when compressing
     function defaultName() {
-      if (files.length !== 1) return 'merged';
+      if (tool === 'merge' || files.length === 0) return 'merged';
       return files[0].file.name.replace(/\.pdf$/i, '') + ' compressed';
     }
-
-    levelInputs.forEach(input => input.addEventListener('change', updateOptions));
 
     // ---- Drag-to-reorder handlers ----
     let dragSrcIndex = null;
@@ -639,17 +692,27 @@
       dragSrcIndex = null;
     }
 
-    // ---- Merge, compress and download ----
-    mergeBtn.addEventListener('click', makePDF);
+    // ---- The main button ----
+    mergeBtn.addEventListener('click', () => (tool === 'merge' ? mergePDFs() : compressPDF()));
 
-    async function makePDF() {
-      mergeBtn.disabled = true;
-
-      // Clear previous errors and re-render (render() clears statusEl, so set status after)
+    // Greys out the button while working. render() clears the status line,
+    // so it runs first and the message is set after it.
+    function startWork(message) {
       files.forEach(entry => entry.error = null);
       render();
-      mergeBtn.disabled = true; // re-disable after render
-      statusEl.textContent = files.length > 1 ? 'Merging...' : 'Reading...';
+      mergeBtn.disabled = true;
+      statusEl.textContent = message;
+    }
+
+    function finishWork(message) {
+      render();
+      statusEl.textContent = message;
+      mergeBtn.disabled = false;
+    }
+
+    // ---- Merge and download ----
+    async function mergePDFs() {
+      startWork('Merging...');
 
       try {
         const { PDFDocument } = PDFLib;
@@ -673,50 +736,63 @@
         }
 
         // If every file had an error, bail out
-        const allFailed = files.every(entry => entry.error !== null);
-        if (allFailed) {
-          render(); // render first so status isn't wiped
-          statusEl.textContent = 'No valid PDFs to merge.';
-          mergeBtn.disabled = false;
+        if (files.every(entry => entry.error !== null)) {
+          finishWork('No valid PDFs to merge.');
           return;
         }
-
-        // Check if any had errors to warn user
         const anyFailed = files.some(entry => entry.error !== null);
 
-        // Shrink the pictures, if a smaller size was chosen
-        const level = chosenLevel();
-        let shrunk = 0;
-        if (level !== 'original') {
-          statusEl.textContent = 'Shrinking pictures...';
-          shrunk = await compressImages(merged, level);
-        }
-
         const pdfBytes = await merged.save();
-        const outputName = (filenameInput.value.trim() || defaultName()) + '.pdf';
-        downloadBlob(pdfBytes, outputName);
+        downloadBlob(pdfBytes, outputName());
 
-        render(); // render first so status isn't wiped
-        statusEl.textContent = doneMessage(level, shrunk, pdfBytes.length, anyFailed);
-
-        mergeBtn.disabled = false;
+        finishWork(anyFailed
+          ? 'Done. Some files were skipped (see errors above).'
+          : 'Done! Your merged PDF has been downloaded.');
 
       } catch (err) {
-        statusEl.textContent = 'Something went wrong. Please try again.';
-        mergeBtn.disabled = false;
+        finishWork('Something went wrong. Please try again.');
       }
     }
 
-    // ---- The message after downloading, with the size before and after ----
-    function doneMessage(level, shrunk, newSize, anyFailed) {
-      const skipped = anyFailed ? ' Some files were skipped (see errors above).' : '';
-      if (level === 'original') return 'Done! Your merged PDF has been downloaded.' + skipped;
+    // ---- Compress and download ----
+    // Works on the file itself (not a copy of its pages), so bookmarks,
+    // links and form fields are kept.
+    async function compressPDF() {
+      const entry = files[0];
+      startWork('Shrinking pictures...');
 
-      const oldSize = files.filter(entry => !entry.error).reduce((sum, entry) => sum + entry.file.size, 0);
-      const sizes = formatSize(oldSize) + ' to ' + formatSize(newSize);
-      if (shrunk === 0) return 'Done (' + sizes + '). There were no pictures to shrink, so the size barely changed.' + skipped;
-      return 'Done! ' + sizes + '.' + skipped;
+      try {
+        let doc;
+        try {
+          doc = await PDFLib.PDFDocument.load(await readFileAsArrayBuffer(entry.file));
+        } catch (err) {
+          entry.error = 'Cannot read this PDF';
+          finishWork('This PDF could not be read (it may be damaged or password protected).');
+          return;
+        }
+
+        const shrunk = await compressImages(doc, chosenLevel());
+        const pdfBytes = await doc.save();
+
+        // Only download when the result is really smaller
+        if (shrunk === 0 || pdfBytes.length >= entry.file.size) {
+          finishWork('This PDF has no pictures that could be made smaller, so it was not changed.');
+          return;
+        }
+        downloadBlob(pdfBytes, outputName());
+        finishWork('Done! ' + formatSize(entry.file.size) + ' to ' + formatSize(pdfBytes.length) + '.');
+
+      } catch (err) {
+        finishWork('Something went wrong. Please try again.');
+      }
     }
+
+    // The name typed in the box, or the suggested one
+    function outputName() {
+      return (filenameInput.value.trim() || defaultName()) + '.pdf';
+    }
+
+    switchTool(savedTool());
 
     // ---- Helper: read File as ArrayBuffer ----
     function readFileAsArrayBuffer(file) {
