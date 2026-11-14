@@ -12,7 +12,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 # Same colours as the page
-INDIGO = (79, 70, 229)       # the Merge button
+INDIGO = (94, 106, 210)      # the Merge button (#5e6ad2, as in Walk Studio)
 BACK_PAGE = (199, 210, 254)  # light indigo
 FRONT_PAGE = (255, 255, 255)
 TEXT_LINE = (165, 180, 252)

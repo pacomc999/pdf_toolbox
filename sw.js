@@ -5,13 +5,14 @@
 // Strategy: "network first". When online, always fetch the newest files
 // and refresh the saved copy. When offline, use the saved copy instead.
 
-const CACHE_NAME = "pdf-merger-v1";
+const CACHE_NAME = "pdf-merger-v2";
 
 // Everything the app needs to start
 const APP_FILES = [
   "./",
   "index.html",
   "vendor/pdf-lib.min.js",
+  "vendor/inter-latin.woff2",
   "manifest.webmanifest",
   "icons/apple-touch-icon.png",
   "icons/icon-192.png",
