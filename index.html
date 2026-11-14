@@ -55,6 +55,7 @@
     /* ---- Colours: light theme ---- */
     :root {
       --frame: #ffffff;       /* the page */
+      --side: #f7f7f8;        /* the sidebar */
       --panel: #ffffff;       /* file rows and fields */
       --raised: #f3f3f5;      /* hover shade */
       --raised-2: #e9e9ec;    /* pressed shade */
@@ -77,6 +78,7 @@
        computer is in dark mode and the switch was never used. */
     :root[data-theme="dark"] {
       --frame: #0b0c0d;
+      --side: #111215;
       --panel: #15161a;
       --raised: #1c1d21;
       --raised-2: #232428;
@@ -93,6 +95,7 @@
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
         --frame: #0b0c0d;
+        --side: #111215;
         --panel: #15161a;
         --raised: #1c1d21;
         --raised-2: #232428;
@@ -119,9 +122,75 @@
       color: var(--text-1);
       min-height: 100vh;
       display: flex;
+    }
+
+    /* ---- Sidebar: app name, the tools, Dark mode at the bottom ---- */
+    .sidebar {
+      width: 210px;
+      flex-shrink: 0;
+      min-height: 100vh;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      background: var(--side);
+      border-right: 1px solid var(--hairline);
+      padding: 18px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 8px 16px;
+      font-size: 14px;
+      font-weight: 590;
+    }
+    .brand img { width: 24px; height: 24px; border-radius: 6px; }
+    .nav-label { color: var(--text-3); font-size: 12px; font-weight: 510; padding: 10px 8px 4px; }
+    .tool-links { display: flex; flex-direction: column; gap: 2px; } /* full width rows */
+
+    /* One row per tool; the open one is shaded. Colours change, nothing moves. */
+    .tool-link {
+      height: 30px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-2);
+      font: inherit;
+      font-weight: 510;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 0.1s var(--ease), color 0.1s var(--ease);
+    }
+    .tool-link svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      color: var(--text-3);
+    }
+    .tool-link:hover { background: var(--raised); color: var(--text-1); }
+    .tool-link.on { background: var(--raised-2); color: var(--text-1); }
+    .tool-link.on svg { color: var(--text-1); }
+    .sidebar-bottom { margin-top: auto; padding: 8px; }
+
+    /* The tool area: centred in the space right of the sidebar */
+    .content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
       justify-content: center;
-      align-items: flex-start;
-      padding: 48px 16px;
+      padding: 48px 32px;
     }
 
     /* Holds the whole tool in one column, straight on the page (no box) */
@@ -140,8 +209,6 @@
     }
     .subtitle { color: var(--text-2); margin-bottom: 24px; }
 
-    /* Title on the left, Dark mode switch on the right */
-    .title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 
     /* ---- Dark mode switch ----
        A checkbox drawn as a small switch. The knob jumps (no sliding),
@@ -328,9 +395,6 @@
     .segmented input:focus-visible + span { outline: 1px solid var(--brand); outline-offset: 1px; }
     .segmented input:disabled + span { opacity: 0.4; cursor: not-allowed; }
 
-    /* The Merge / Compress switch under the subtitle */
-    .tool-tabs { align-self: flex-start; margin-bottom: 16px; }
-    .tool-tabs span { padding: 6px 16px; }
     #filename-input {
       flex: 1;
       min-width: 0;
@@ -365,6 +429,27 @@
     #merge-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     #merge-btn:disabled:hover { background: var(--brand); }
 
+    @media (max-width: 700px) {
+      body { flex-direction: column; }
+      .sidebar {
+        width: 100%;
+        min-height: 0;
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+        padding: 10px 12px;
+        border-right: 0;
+        border-bottom: 1px solid var(--hairline);
+      }
+      .brand { padding: 0 8px 0 0; }
+      .nav-label { display: none; }
+      .sidebar-bottom { margin: 0 0 0 auto; padding: 0; order: 2; }
+      .tool-links { order: 3; width: 100%; flex-direction: row; gap: 4px; margin-top: 6px; }
+      .content { padding: 28px 16px; }
+    }
+
     #status {
       color: var(--text-2);
       text-align: center;
@@ -374,27 +459,38 @@
 </head>
 <body>
 
-  <!-- One column that holds the whole tool -->
+  <!-- Sidebar: the app, its tools, and Dark mode. New tools get a row here. -->
+  <nav class="sidebar" aria-label="Tools">
+    <div class="brand"><img src="icons/icon-192.png" alt="">PDF Toolbox</div>
+    <div class="nav-label">Tools</div>
+    <div class="tool-links">
+      <button class="tool-link" type="button" data-tool="merge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="10" rx="1.5"/><rect x="13" y="3" width="8" height="10" rx="1.5"/><path d="M7 13v3a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-3M12 18v3"/></svg>
+        Merge
+      </button>
+      <button class="tool-link" type="button" data-tool="compress">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h5V4M20 9h-5V4M4 15h5v5M20 15h-5v5"/></svg>
+        Compress
+      </button>
+    </div>
+    <div class="sidebar-bottom">
+      <label class="theme-switch" title="Dark mode">
+        <!-- Moon icon instead of the words; aria-label keeps the name for screen readers -->
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+        </svg>
+        <input type="checkbox" id="theme-switch" role="switch" aria-label="Dark mode">
+        <span class="track"></span>
+      </label>
+    </div>
+  </nav>
+
+  <!-- The open tool -->
+  <div class="content">
   <main class="panel">
 
-  <div class="title-row">
-    <h1>PDF Toolbox</h1>
-    <label class="theme-switch" title="Dark mode">
-      <!-- Moon icon instead of the words; aria-label keeps the name for screen readers -->
-      <svg class="moon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
-      </svg>
-      <input type="checkbox" id="theme-switch" role="switch" aria-label="Dark mode">
-      <span class="track"></span>
-    </label>
-  </div>
-  <p class="subtitle">Merge PDF files and make them smaller. Everything stays on your device.</p>
-
-  <!-- Which tool is showing: a two part switch, same style as Image size -->
-  <div class="segmented tool-tabs" role="radiogroup" aria-label="Tool">
-    <label><input type="radio" name="tool" value="merge" checked><span>Merge</span></label>
-    <label><input type="radio" name="tool" value="compress"><span>Compress</span></label>
-  </div>
+  <h1 id="tool-title">Merge</h1>
+  <p class="subtitle" id="tool-about">Join several PDFs into one, in the order you choose.</p>
 
   <div id="drop-zone">
     <p><span id="drop-text">Drag and drop PDF files here</span>, or <span id="pick-label">browse</span></p>
@@ -422,6 +518,7 @@
   </div>
 
   </main>
+  </div>
 
   <!-- pdf-lib 1.17.1 (MIT licence), kept in the project so merging works offline -->
   <script src="vendor/pdf-lib.min.js"></script>
@@ -601,14 +698,27 @@
 
     // ---- Tool tabs (Merge / Compress) ----
     const TOOL_KEY = 'pdf_toolbox:tool';
-    const toolInputs = document.querySelectorAll('input[name="tool"]');
+    const toolLinks = document.querySelectorAll('.tool-link');
+
+    // Title and one line description for each tool
+    const TOOL_TEXT = {
+      merge: { title: 'Merge', about: 'Join several PDFs into one, in the order you choose. Everything stays on your device.' },
+      compress: { title: 'Compress', about: 'Make a PDF smaller by shrinking the pictures inside. Text stays sharp, and everything stays on your device.' },
+    };
 
     // Shows one tool: its own file list, texts and options.
     // The choice is remembered, so the app opens on the last tool used.
     function switchTool(name) {
       tool = name;
       files = filesByTool[name];
-      document.querySelector('input[name="tool"][value="' + name + '"]').checked = true;
+      toolLinks.forEach(link => {
+        const isOpen = link.dataset.tool === name;
+        link.classList.toggle('on', isOpen);
+        if (isOpen) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+      });
+      document.getElementById('tool-title').textContent = TOOL_TEXT[name].title;
+      document.getElementById('tool-about').textContent = TOOL_TEXT[name].about;
       fileInput.multiple = name === 'merge';
       dropText.textContent = name === 'merge' ? 'Drag and drop PDF files here' : 'Drag and drop a PDF here';
       filenameInput.value = ''; // each tool suggests its own name
@@ -628,7 +738,7 @@
       }
     }
 
-    toolInputs.forEach(input => input.addEventListener('change', () => switchTool(input.value)));
+    toolLinks.forEach(link => link.addEventListener('click', () => switchTool(link.dataset.tool)));
 
     // ---- Options for the tool that is showing ----
     function chosenLevel() {
